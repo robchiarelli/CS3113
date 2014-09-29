@@ -228,7 +228,7 @@ void ClassDemoApp::Update(float elapsed) {
 		}
 
 		if (event.key.keysym.scancode == SDL_SCANCODE_SPACE) {
-			if (lastShot >= 10) {
+			if (lastShot >= 500) {
 				shootLaser();
 				lastShot = 0;
 			}
