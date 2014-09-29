@@ -237,7 +237,7 @@ void ClassDemoApp::Update(float elapsed) {
 	lastShot++;
 
 	if (gameState == 0) {
-		if (keys[SDL_SCANCODE_0]) {
+		if (keys[SDL_SCANCODE_RETURN]) {
 			gameState = 1;
 		}
 	}
