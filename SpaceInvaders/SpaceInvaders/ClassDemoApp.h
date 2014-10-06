@@ -228,16 +228,16 @@ void ClassDemoApp::Update(float elapsed) {
 		}
 
 		if (event.key.keysym.scancode == SDL_SCANCODE_SPACE) {
-			if (lastShot >= 10) {
+			if (lastShot >= 500) {
 				shootLaser();
 				lastShot = 0;
 			}
 		}
-		lastShot++;
 	}
+	lastShot++;
 
 	if (gameState == 0) {
-		if (keys[SDL_SCANCODE_0]) {
+		if (keys[SDL_SCANCODE_RETURN]) {
 			gameState = 1;
 		}
 	}
@@ -253,8 +253,6 @@ void ClassDemoApp::Update(float elapsed) {
 		for (SheetSprite &l : lasers) {
 			if (l.isVisible == true) {
 				l.y += elapsed;
-
-				//l.timeAlive += elapsed;
 				if (l.y >= 1.0f) {
 					l.isVisible = false;
 				}
@@ -263,11 +261,9 @@ void ClassDemoApp::Update(float elapsed) {
 
 		for (SheetSprite &el : enemyLasers) {
 			el.y -= elapsed;
-
-				//el.timeAlive += elapsed;
-				if (el.y <= -1.0f) {
-					el.isVisible = false;
-				}
+			if (el.y <= -1.0f) {
+				el.isVisible = false;
+			}
 			
 		}
 
