@@ -182,7 +182,7 @@ void ProcessEvents(bool &done, float &elapsed) {
 	}
 }
 
-void FixedUpdate() {
+void FixedUpdate(Mix_Chunk *hit) {
 	//Collision Detection
 	//Ball and paddles
 	if (((ball.x - paddle1.x) < (paddle1.width / 2 + ball.width / 2)
@@ -193,6 +193,7 @@ void FixedUpdate() {
 		&& (paddle2.y + paddle2.height / 2) > ball.y)) {
 		if (ball.angle <= 180) ball.angle = 90.0 - (ball.angle - 90.0);
 		else ball.angle = 270.0 - (ball.angle - 270.0);
+		Mix_PlayChannel(-1, hit, 0);
 	}
 
 	//Ball ball and walls
@@ -200,10 +201,11 @@ void FixedUpdate() {
 		|| top.y - ball.y < (top.height / 2 + ball.height / 2)) {
 		if (ball.angle <= 90.0) ball.angle = -(ball.angle);
 		else ball.angle = 180.0 - (ball.angle - 180.0);
+		Mix_PlayChannel(-1, hit, 0);
 	}
 }
 
-void Update(bool &done, float &elapsed) {
+void Update(bool &done, float &elapsed, Mix_Chunk *lose) {
 	//Paddle1 and walls
 	if (top.y - paddle1.y < (top.height / 2 + paddle1.height / 2)) {
 		paddle1.y -= elapsed * paddle1.speed;
@@ -225,6 +227,7 @@ void Update(bool &done, float &elapsed) {
 		gameState = 0;
 		ball.x = 0.0;
 		ball.y = 0.0;
+		Mix_PlayChannel(-1, lose, 0);
 	}
 }
 
@@ -249,6 +252,10 @@ void Render() {
 int main(int argc, char *argv[])
 {	
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
+	Mix_Chunk *hit;
+	hit = Mix_LoadWAV("Blip_Select2.wav");
+	Mix_Chunk *lose;
+	lose = Mix_LoadWAV("Powerup.wav");
 
 	Mix_Music *song;
 	song = Mix_LoadMUS("testsong.mp3");
@@ -279,11 +286,11 @@ int main(int argc, char *argv[])
 
 		while (fixedElapsed >= FIXED_TIMESTEP) {
 			fixedElapsed -= FIXED_TIMESTEP;
-			FixedUpdate();
+			FixedUpdate(hit);
 		}
 		timeLeftOver = fixedElapsed;
 
-		Update(done, elapsed/*, lastValidX, lastValidY*/);
+		Update(done, elapsed, lose);
 
 		Render();
 	}
