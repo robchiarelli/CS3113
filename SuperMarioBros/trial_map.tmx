@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="64" height="16" tilewidth="16" tileheight="16">
+ <tileset firstgid="1" name="arne" tilewidth="16" tileheight="16">
+  <image source="../arne_sprites.png" width="256" height="128"/>
+ </tileset>
+ <layer name="Tile Layer 1" width="64" height="16">
+  <data encoding="base64" compression="zlib">
+   eJztkEsKgDAMRKueQD2B9gS297+bXTQQQvOhblzMg4dQdTpJSgAAAAAAAIAoq+Nf0PosyZ/Bc28ezZM9ycgeIvlcusPqMeog3QaZX6Wc3NW6er35vJdQ2wc3M62+lHmLfzzlHSTl1K42m7Vvr/OM2hxPt7DOEbNyXsQ3ow5ep2q8m1Wb4wWdExdg
+  </data>
+ </layer>
+ <objectgroup name="Object Layer">
+  <object type="player" gid="81" x="91" y="138"/>
+ </objectgroup>
+</map>
