@@ -3,7 +3,7 @@
 
 Vector::Vector() {}
 
-Vector::Vector(float x, float y, float z) {
+Vector::Vector(float x, float y, float z = 0.0f) {
 	this->x = x;
 	this->y = y;
 	this->z = z;
@@ -14,7 +14,8 @@ float Vector::length() {
 }
 
 void Vector::normalize() {
-	x /= length();
-	y /= length();
-	z /= length();
+	float length = this->length();
+	x /= length;
+	y /= length;
+	z /= length;
 }

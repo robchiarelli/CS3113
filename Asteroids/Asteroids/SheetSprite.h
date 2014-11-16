@@ -10,8 +10,7 @@ public:
 	SheetSprite() {}
 	SheetSprite(GLuint texture, float h, float w, float u, float v, float scale);
 
-	void Draw(float x, float y);
-	void DrawSheet(float x, float y, float r);
+	void DrawSheet(float x, float y);
 
 	float scale;
 	unsigned int textureID;

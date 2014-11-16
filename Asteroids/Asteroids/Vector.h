@@ -1,3 +1,6 @@
+#ifndef VECTOR_H
+#define VECTOR_H
+
 class Vector {
 public:
 	Vector();
@@ -8,3 +11,5 @@ public:
 	float y;
 	float z;
 };
+
+#endif

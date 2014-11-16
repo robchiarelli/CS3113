@@ -11,7 +11,7 @@
 class Entity {
 public:
 	Entity();
-	Entity(float x, float y, float mass);
+	Entity(float x, float y);
 
 	void Update(float elapsed, const Uint8 *keys);
 	void Render();
@@ -29,13 +29,13 @@ public:
 	float acceleration_r;
 	float friction_xy;
 	float friction_r;
-	float mass;
 
 	int loc;
 	float startX;
 	float startY;
+	float startR;
 
-	bool isCollision(Entity e);
+	bool isCollision(Entity &e);
 	bool isVisible;
 
 	std::string type;
@@ -51,6 +51,7 @@ public:
 	Vector bottomRight;
 
 	void BuildMatrix();
+	int clock;
 };
 
 #endif

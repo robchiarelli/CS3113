@@ -33,6 +33,9 @@
     <ClInclude Include="Vector.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="ParticleStuff.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Text.cpp">
@@ -51,6 +54,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Vector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ParticleStuff.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
