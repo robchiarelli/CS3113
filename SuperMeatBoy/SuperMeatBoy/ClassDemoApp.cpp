@@ -1,0 +1,511 @@
+#include "ClassDemoApp.h"
+#include "Entity.h"
+#include <time.h>
+#include <vector>
+
+#include <fstream>
+#include <string>
+#include <iostream>
+#include <sstream>
+
+#define FIXED_TIMESTEP 0.0166666f
+#define MAX_TIMESTEPS 6
+#define LEVEL_HEIGHT 16
+#define LEVEL_WIDTH 64
+#define TILE_SIZE 0.125f
+#define SPRITE_COUNT_X 16
+#define SPRITE_COUNT_Y 8
+#define WORLD_OFFSET_X 0.0f
+#define WORLD_OFFSET_Y 0.0f
+
+float timeLeftOver = 0.0f;
+
+GLuint LoadTexture(const char *image_path) {
+	SDL_Surface *surface = IMG_Load(image_path);
+
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	SDL_FreeSurface(surface);
+	return textureID;
+}
+
+ClassDemoApp::ClassDemoApp() {
+	InitOpenGL();
+	InitRest();
+	score = 0;
+	bestScore = 0;
+	clock = 0;
+	gameState = 0;
+	done = false;
+	lastFrameTicks = 0.0f;
+}
+
+ClassDemoApp::~ClassDemoApp() {
+	delete player;
+	for (Entity *e : spikes)
+		delete e;
+	delete levelData;
+	SDL_Quit();
+}
+
+bool ClassDemoApp::ReadHeader(std::ifstream &stream) {
+	string line;
+	mapWidth = -1;
+	mapHeight = -1;
+	while (getline(stream, line)) {
+		if (line == "") { break; }
+		istringstream sStream(line);
+		string key, value;
+		getline(sStream, key, '=');
+		getline(sStream, value);
+		if (key == "width") {
+			mapWidth = atoi(value.c_str());
+		}
+		else if (key == "height"){
+			mapHeight = atoi(value.c_str());
+		}
+	}
+	if (mapWidth == -1 || mapHeight == -1) {
+		return false;
+	}
+	else {
+		levelData = new unsigned char*[mapHeight];
+		for (int i = 0; i < mapHeight; ++i) {
+			levelData[i] = new unsigned char[mapWidth];
+		}
+		return true;
+	}
+}
+
+bool ClassDemoApp::ReadLayerData(std::ifstream &stream) {
+	string line;
+	while (getline(stream, line)) {
+		if (line == "") { break; }
+		istringstream sStream(line);
+		string key, value;
+		getline(sStream, key, '=');
+		getline(sStream, value);
+		if (key == "data") {
+			for (int y = 0; y < mapHeight; y++) {
+				getline(stream, line);
+				istringstream lineStream(line);
+				string tile;
+
+				for (int x = 0; x < mapWidth; x++) {
+					getline(lineStream, tile, ',');
+					unsigned char val = (unsigned char)atoi(tile.c_str());
+					if (val > 0) {
+						levelData[y][x] = val;
+					}
+					else {
+						levelData[y][x] = 0;
+					}
+				}
+			}
+		}
+	}
+	return true;
+}
+
+void ClassDemoApp::PlaceEntity(string type, float placeX, float placeY) {
+	if (type == "player") {
+		player = new Entity();
+		player->type = type;
+		player->x = placeX;
+		player->y = placeY;
+		player->width = TILE_SIZE;
+		player->height = TILE_SIZE;
+		player->textureID = texture;
+	}
+
+	if (type == "spikes") {
+		Entity *e = new Entity();
+		e->type = type;
+		e->x = placeX + TILE_SIZE / 2;
+		e->y = placeY;
+		e->width = TILE_SIZE;
+		e->height = TILE_SIZE;
+		e->textureID = texture;
+		e->spriteNum = 100;
+		spikes.push_back(e);
+	}
+}
+
+bool ClassDemoApp::ReadEntityData(std::ifstream &stream) {
+	string line;
+	string type;
+		
+	while (getline(stream, line)) {
+		if (line == "") { break; }
+		istringstream sStream(line);
+		string key, value;
+		getline(sStream, key, '=');
+		getline(sStream, value);
+		if (key == "type") {
+			type = value;
+		}
+		else if (key == "location") {
+
+			istringstream lineStream(value);
+			string xPosition, yPosition;
+			getline(lineStream, xPosition, ',');
+			getline(lineStream, yPosition, ',');
+
+			float placeX = atoi(xPosition.c_str()) / 16 * TILE_SIZE;
+			float placeY = atoi(yPosition.c_str()) / 16 * -TILE_SIZE;
+
+			PlaceEntity(type, placeX, placeY);
+		}
+	}
+	return true;
+}
+
+void ClassDemoApp::BuildLevelData() {
+	ifstream stream("level1test.txt");
+	string line;
+	while (getline(stream, line)) {
+		if (line == "[header]") {
+			if (!ReadHeader(stream)) {
+				return;
+			}
+		}
+		else if (line == "[layer]") {
+			ReadLayerData(stream);
+		}
+		else if (line == "[ObjectsLayer]") {
+			ReadEntityData(stream);
+		}
+	}
+}
+
+void ClassDemoApp::RenderMap() {
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	vector<float> vertexData;
+	vector<float> texCoordData;
+	for (int y = 0; y < mapHeight; y++) {
+		for (int x = 0; x < mapWidth; x++) {
+			if (levelData[y][x]) {
+				float u = (float)(((int)levelData[y][x] - 1) % SPRITE_COUNT_X) / (float)SPRITE_COUNT_X;
+				float v = (float)(((int)levelData[y][x] - 1) / SPRITE_COUNT_X) / (float)SPRITE_COUNT_Y;
+				float spriteWidth = 1.0f / (float)SPRITE_COUNT_X;
+				float spriteHeight = 1.0f / (float)SPRITE_COUNT_Y;
+				vertexData.insert(vertexData.end(), {
+					TILE_SIZE * x, -TILE_SIZE * y,
+					TILE_SIZE * x, (-TILE_SIZE * y) - TILE_SIZE,
+					(TILE_SIZE * x) + TILE_SIZE, (-TILE_SIZE * y) - TILE_SIZE,
+					(TILE_SIZE * x) + TILE_SIZE, -TILE_SIZE * y
+				});
+				texCoordData.insert(texCoordData.end(), { u, v,
+					u, v + (spriteHeight),
+					u + spriteWidth, v + (spriteHeight),
+					u + spriteWidth, v
+				});
+			}
+		}
+	}
+	glVertexPointer(2, GL_FLOAT, 0, vertexData.data());
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glTexCoordPointer(2, GL_FLOAT, 0, texCoordData.data());
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDrawArrays(GL_QUADS, 0, vertexData.size() / 2);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+}
+
+void ClassDemoApp::InitOpenGL() {
+	SDL_Init(SDL_INIT_VIDEO);
+	displayWindow = SDL_CreateWindow("Better late than never, right?", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_OPENGL);
+	SDL_GLContext context = SDL_GL_CreateContext(displayWindow);
+	SDL_GL_MakeCurrent(displayWindow, context);
+
+	glViewport(0, 0, 800, 600);
+	glMatrixMode(GL_PROJECTION);
+	glOrtho(-1.33, 1.33, -1.0, 1.0, -1.0, 1.0);
+}
+
+void ClassDemoApp::InitRest() {
+	texture = LoadTexture("arne_sprites.png");
+
+	BuildLevelData();
+
+	writeScore.font = LoadTexture("font1.png");
+	writeScore.size = 0.125;
+	writeScore.spacing = -0.060;
+	writeScore.r = 0.0;
+	writeScore.g = 1.0;
+	writeScore.b = 0.0;
+	writeScore.a = 1.0;
+}
+
+float mapValue(float value, float srcMin, float srcMax, float dstMin, float dstMax) {
+	float retVal = dstMin + ((value - srcMin) / (srcMax - srcMin) * (dstMax - dstMin));
+	if (retVal < dstMin) {
+		retVal = dstMin;
+	}
+	if (retVal > dstMax) {
+		retVal = dstMax;
+	}
+	return retVal;
+}
+
+float easeIn(float from, float to, float time) {
+	float tVal = time*time*time*time*time;
+	return (1.0f - tVal)*from + tVal*to;
+}
+
+float easeOut(float from, float to, float time) {
+	float oneMinusT = 1.0f - time;
+	float tVal = 1.0f - (oneMinusT * oneMinusT * oneMinusT *
+		oneMinusT * oneMinusT);
+	return (1.0f - tVal)*from + tVal*to;
+}
+
+float easeInOut(float from, float to, float time) {
+	float tVal;
+	if (time > 0.5) {
+		float oneMinusT = 1.0f - ((0.5f - time)*-2.0f);
+		tVal = 1.0f - ((oneMinusT * oneMinusT * oneMinusT * oneMinusT *
+			oneMinusT) * 0.5f);
+	}
+	else {
+		time *= 2.0;
+		tVal = (time*time*time*time*time) / 2.0;
+	}
+	return (1.0f - tVal)*from + tVal*to;
+}
+
+float easeOutElastic(float from, float to, float time) {
+	float p = 0.3f;
+	float s = p / 4.0f;
+	float diff = (to - from);
+	return from + diff + (diff*pow(2.0f, -10.0f*time) * sin((time - s)*(2 * M_PI) / p));
+}
+
+void ClassDemoApp::Render() {
+	glClearColor(0.0f, 0.59f, 0.74f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glPushMatrix();
+	glMatrixMode(GL_MODELVIEW);
+
+	if (gameState == 0) {
+		writeScore.Draw("Use the arrow keys to move", -1.2, 0.7);
+		writeScore.Draw("Press the space bar to jump", -1.2, 0.5);
+		writeScore.Draw("Jump while pressing into a wall", -1.2, 0.3);
+		writeScore.Draw("	to jump off the wall", -1.2, 0.1);
+		writeScore.Draw("Press Enter to begin", -1.2, -0.7);
+	}
+	if (gameState == 1) {
+		float translateX = 0.0f;
+		if (player->x > 1.33)
+			translateX = -player->x;
+		else
+			translateX = -1.33f;
+		if (player->x > 6.66)
+			translateX = -6.66f;
+		glTranslatef(translateX, 1.0, 0.0f);
+		RenderMap();
+		player->Render();
+		for (Entity *e : spikes)
+			e->Render();
+		writeScore.Draw(to_string((int)floor(clock / 60)), -translateX + 1.125, -0.25f);
+	}
+
+	if (gameState == 2) {
+		writeScore.Draw("Congratulations!  You beat level 1", -1.2, 0.5);
+		writeScore.Draw("	with a score of " + to_string(score), -1.2, 0.3);
+		writeScore.Draw("High Score: " + to_string(bestScore), -1.2, 0.1);
+		writeScore.Draw("Press the space bar to play again", -1.2, -0.3);
+	}
+	if (gameState == 3) {
+		writeScore.Draw("You lose",-1.2, 0.1);
+		writeScore.Draw("Press the space bar to play again", -1.2, -0.1);
+	}
+
+	glPopMatrix();
+
+	SDL_GL_SwapWindow(displayWindow);
+}
+
+int worldToTileCoordX(float x) {
+	int xx = (int)((x + (WORLD_OFFSET_X)) / TILE_SIZE);
+	if (xx > LEVEL_WIDTH)
+		xx = LEVEL_WIDTH;
+	if (xx < 0)
+		xx = 0;
+	return xx;
+}
+
+int worldToTileCoordY(float y) {
+	int yy = (int)((-y + (WORLD_OFFSET_Y)) / TILE_SIZE);
+	if (yy > LEVEL_HEIGHT)
+		yy = LEVEL_HEIGHT;
+	if (yy < 0)
+		yy = 0;
+	return yy;
+}
+
+void ClassDemoApp::IsCollisionWithMapX(Entity *e) {
+	float tileBottom = e->y - e->height * TILE_SIZE;
+	float tileTop = e->y + e->height * TILE_SIZE;
+	float tileLeft = e->x - e->width * TILE_SIZE * 4;
+	float tileRight = e->x + e->width * TILE_SIZE * 4;
+
+	if (e->velocity_x < 0) {
+		if ((levelData[worldToTileCoordY(tileBottom)][worldToTileCoordX(tileLeft)]) ||
+			(levelData[worldToTileCoordY(tileTop)][worldToTileCoordX(tileLeft)])) {
+			e->collidedLeft = true;
+			e->x -= FIXED_TIMESTEP * e->velocity_x;
+			e->velocity_x = 0.0f;
+			e->acceleration_x = 0.0f;
+		}
+	}
+	else if (e->velocity_x > 0) {
+		if ((levelData[worldToTileCoordY(tileBottom)][worldToTileCoordX(tileRight)]) ||
+			(levelData[worldToTileCoordY(tileTop)][worldToTileCoordX(tileRight)])) {
+			e->collidedRight = true;
+			e->x -= FIXED_TIMESTEP * e->velocity_x;
+			e->velocity_x = 0.0f;
+			e->acceleration_x = 0.0f;
+		}
+	}
+	else {
+		e->collidedLeft = false;
+		e->collidedRight = false;
+	}
+}
+
+void ClassDemoApp::IsCollisionWithMapY(Entity *e) {
+	float tileBottom = e->y - e->height * TILE_SIZE * 4;
+	float tileTop = e->y + e->height * TILE_SIZE * 4;
+	float tileLeft = e->x - e->width * TILE_SIZE;
+	float tileRight = e->x + e->width * TILE_SIZE;
+
+	if (e->velocity_y < 0){
+		if ((levelData[worldToTileCoordY(tileBottom)][worldToTileCoordX(tileRight)]) ||
+			(levelData[worldToTileCoordY(tileBottom)][worldToTileCoordX(tileLeft)])) {
+			e->collidedBottom = true;
+			e->y -= FIXED_TIMESTEP * e->velocity_y;
+			e->velocity_y = 0.0f; 
+			e->acceleration_y = 0.0f;
+		}
+	}
+	else if (e->velocity_y > 0 && !e->collidedTop){
+		if ((levelData[worldToTileCoordY(tileTop)][worldToTileCoordX(tileRight)]) ||
+			(levelData[worldToTileCoordY(tileTop)][worldToTileCoordX(tileLeft)])) {
+			e->collidedTop = true;
+			e->y -= FIXED_TIMESTEP * e->velocity_y;
+			e->velocity_y = 0.0f; 
+			e->acceleration_y = -4.0f;
+		}
+	}
+	else {
+		e->collidedTop = false;
+		e->collidedBottom = false;
+	}
+}
+
+void ClassDemoApp::FixedUpdate() {
+	if (gameState == 1) {
+		player->FixedUpdateY();
+		IsCollisionWithMapY(player);
+		player->FixedUpdateX();
+		IsCollisionWithMapX(player);
+		
+		for (Entity *e : spikes) {
+			if (player->isCollision(*e))
+				gameState = 3;
+		}
+	}
+}
+
+void ClassDemoApp::Update(float elapsed) {
+
+	SDL_Event event;
+
+	const Uint8 *keys = SDL_GetKeyboardState(NULL);
+
+	while (SDL_PollEvent(&event)) {
+		if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
+			done = true;
+		}
+	}
+
+	if (gameState == 0) {
+		if (keys[SDL_SCANCODE_RETURN]) {
+			gameState = 1;
+		}
+	}
+	if (gameState == 1) {
+		player->Update(elapsed, keys);
+		if (keys[SDL_SCANCODE_SPACE])
+			player->Jump();
+
+		if (player->x > 7.75) {
+			gameState = 2;
+			score = floor(clock / 60);
+			if (score < bestScore || bestScore == 0)
+				bestScore = score;
+		}
+
+		for (Entity *e : spikes)
+			e->Update(elapsed, keys);
+	}
+
+	if (gameState == 2 || gameState == 3) {
+		if (keys[SDL_SCANCODE_SPACE])
+			Reset();
+	}
+}
+
+bool ClassDemoApp::UpdateAndRender() {
+	float ticks = (float)SDL_GetTicks() / 1000.0f;
+	float elapsed = ticks - lastFrameTicks;
+	lastFrameTicks = ticks;
+
+	float fixedElapsed = elapsed + timeLeftOver;
+	if (fixedElapsed > FIXED_TIMESTEP * MAX_TIMESTEPS) {
+		fixedElapsed = FIXED_TIMESTEP * MAX_TIMESTEPS;
+	}
+
+	while (fixedElapsed >= FIXED_TIMESTEP) {
+		fixedElapsed -= FIXED_TIMESTEP;
+		FixedUpdate();
+
+		clock++;
+	}
+	timeLeftOver = fixedElapsed;
+
+	Update(elapsed);
+	Render();
+	return done;
+}
+
+void ClassDemoApp::Reset() {
+	gameState = 0;
+	clock = 0;
+	done = false;
+	lastFrameTicks = 0.0f;
+	score = 0;
+
+	delete player;
+	delete levelData;
+
+	InitRest();
+}
+
+int main(int argc, char *argv[]) {
+	ClassDemoApp app;
+	while (!app.UpdateAndRender()) {}
+	return 0;
+}
