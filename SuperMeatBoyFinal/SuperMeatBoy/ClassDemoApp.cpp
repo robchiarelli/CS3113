@@ -486,19 +486,19 @@ void ClassDemoApp::Render() {
 		text.Draw("Congratulations!  You beat level 0", -1.2, 0.5);
 		text.Draw("	with a score of " + to_string(score), -1.2, 0.3);
 		text.Draw("High Score: " + to_string(bestScoreLevel0), -1.2, 0.1);
-		text.Draw("Press the space bar to play again", -1.2, -0.3);
+		text.Draw("Press the space bar to return to the menu", -1.2, -0.3);
 	}
 	if (gameState == 8) {
 		text.Draw("Congratulations!  You beat level 1", -1.2, 0.5);
 		text.Draw("	with a score of " + to_string(score), -1.2, 0.3);
 		text.Draw("High Score: " + to_string(bestScoreLevel1), -1.2, 0.1);
-		text.Draw("Press the space bar to play again", -1.2, -0.3);
+		text.Draw("Press the space bar to return to the menu", -1.2, -0.3);
 	}
 	if (gameState == 11) {
 		text.Draw("Congratulations!  You beat level 2", -1.2, 0.5);
 		text.Draw("	with a score of " + to_string(score), -1.2, 0.3);
 		text.Draw("High Score: " + to_string(bestScoreLevel2), -1.2, 0.1);
-		text.Draw("Press the space bar to play again", -1.2, -0.3);
+		text.Draw("Press the space bar to return to the menu", -1.2, -0.3);
 	}
 	if (gameState == 5) {
 		text.Draw("You lose", -1.2, 0.1);

@@ -113,7 +113,7 @@ void Entity::Update(float elapsed, const Uint8 *keys) {
 void Entity::Jump() {
 	if (collidedBottom) {
 		if (velocity_y > 0)
-			y += 0.02;
+			y += 0.05;
 		velocity_y = 1.2f;
 		acceleration_y = 0.0f;
 	}
@@ -137,24 +137,27 @@ void Entity::Jump() {
 bool Entity::isCollision(Entity other) {
 	if ((bottomEdge < other.topEdge) && (rightEdge > other.leftEdge) && (leftEdge < other.rightEdge) && (topEdge > other.bottomEdge)) {
 		if (y > other.y) {
-			collidedBottom = true;
 			if (other.velocity_y < 0) {
 				y = other.y + height;
 				velocity_y = other.velocity_y;
 				acceleration_y = 0.0f;
+				collidedBottom = true;
 			}
 			else if (other.velocity_y > 0) {
 				y = other.y + height;
 				velocity_y = other.velocity_y;
 				acceleration_y = 0.0f;
+				collidedBottom = true;
 			}
 		}
-		else
+		else {
 			collidedBottom = false;
-		return true;
+			acceleration_y = -4.0f;
+		}
 	}
-	else
+	else {
 		return false;
+	}
 }
 
 void Entity::FixedUpdateX() {
