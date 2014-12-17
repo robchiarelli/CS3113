@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="64" height="16" tilewidth="16" tileheight="16">
+ <tileset firstgid="1" name="arne_sprites" tilewidth="16" tileheight="16">
+  <image source="arne_sprites.png" width="256" height="128"/>
+ </tileset>
+ <layer name="Tile Layer 1" width="64" height="16">
+  <data encoding="base64" compression="zlib">
+   eJztVe0KwyAMdB3sf6t9AD/e/xlnIYHbrd2cZVZoA4fVXM5cmGw2xswnx1nj8v/d/2MHeo9S/zVx+e8/Wvrv8W3U+C9975/2vcyh1n9JlNQdPYej/WPuiDnU/P9v/Y5/fQ9b2i3nsNf/v+pazaFX/3vvKo3F+y1jzHAZg3xbWRdMkhshh1wHfCd81LNQbyU/QX6As4G4DvJ6Zql+WtHXvd4/0r2qc88IgpiRMrxAz/Q7AYdX5KKO5vSc9TyskfoIpIs9ReB74HriBtDCftkfamo986J59R3N+uwScLge++E9z4J7Za437/0nQiAe3qE9PgHL7B4X
+  </data>
+ </layer>
+ <objectgroup name="ObjectsLayer">
+  <object type="player" gid="81" x="34" y="180"/>
+  <object type="spikes" gid="102" x="736" y="208"/>
+  <object type="spikes" gid="102" x="752" y="208"/>
+  <object type="spikes" gid="102" x="816.333" y="208"/>
+  <object type="spikes" gid="102" x="832.333" y="208"/>
+  <object type="spikes" gid="102" x="896" y="208"/>
+  <object type="spikes" gid="102" x="912.333" y="208.333"/>
+ </objectgroup>
+</map>
